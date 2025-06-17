@@ -17,9 +17,7 @@ class TrainedAgent:
                 elif self.maze_size == 20:
                     model_data = models['agent_20x20']
                 elif self.maze_size == 25:
-                    # Para el laberinto 25x25, usamos el modelo del 20x20
-                    print("Usando modelo del laberinto 20x20 para el laberinto 25x25")
-                    model_data = models['agent_20x20']
+                    model_data = models['agent_25x25']
                 else:
                     raise ValueError(f"No hay modelo entrenado para laberinto {self.maze_size}x{self.maze_size}")
                 
@@ -30,5 +28,10 @@ class TrainedAgent:
     
     def get_action(self, state):
         """Selecciona la mejor acción según la Q-table"""
-        state_tuple = tuple(state['agent_pos'])
+        # Si el estado es un diccionario, extraer la posición del agente
+        if isinstance(state, dict):
+            state_tuple = tuple(state['agent_pos'])
+        else:
+            state_tuple = state  # Si ya es una tupla, usarla directamente
+            
         return np.argmax(self.q_table[state_tuple]) 

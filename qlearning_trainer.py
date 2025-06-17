@@ -4,120 +4,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict
 import random
 from tqdm import tqdm
-
-class Maze:
-    def __init__(self, width, height):
-        self.width = width
-        self.height = height
-        self.grid = np.ones((height, width))  # Inicializar todo como paredes
-        self.agent_pos = [1, 1]  # Posición inicial del agente
-        self.goal_pos = [height-2, width-2]  # Posición de la meta
-        self.moves_count = 0
-        self.max_moves = (width + height) * 3  # 3 veces el tamaño del laberinto
-        
-        # Generar laberinto predefinido según el tamaño
-        self.generate_predefined_maze()
-        
-    def generate_predefined_maze(self):
-        # Laberinto 20x20 fijo
-        if self.width == 20 and self.height == 20:
-            laberinto_20x20 = [
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-                [1,0,0,0,1,0,1,0,0,0,1,0,1,0,1,0,0,0,0,1],
-                [1,1,1,0,1,0,1,1,1,0,1,0,1,0,1,1,1,1,0,1],
-                [1,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,0,1],
-                [1,0,1,1,1,1,1,0,1,1,1,1,1,1,1,1,0,1,0,1],
-                [1,0,1,0,0,0,1,0,0,0,0,0,0,0,0,1,0,1,0,1],
-                [1,0,1,0,1,0,1,1,1,1,1,1,1,1,0,1,0,1,0,1],
-                [1,0,1,0,1,0,0,0,0,0,0,0,0,1,0,1,0,1,0,1],
-                [1,0,1,0,1,1,1,1,1,1,1,1,0,1,0,1,0,1,0,1],
-                [1,0,1,0,0,0,0,0,0,1,0,0,0,1,0,1,0,1,0,1],
-                [1,0,1,1,1,1,1,1,0,1,0,1,1,1,0,1,0,1,0,1],
-                [1,0,0,0,0,0,0,1,0,1,0,0,0,0,0,1,0,1,0,1],
-                [1,1,0,1,1,1,0,1,0,1,1,1,1,1,1,1,0,1,0,1],
-                [1,0,0,0,0,1,0,1,0,0,0,0,0,1,0,0,0,1,0,1],
-                [1,0,1,1,0,1,0,1,0,1,1,1,0,1,1,1,1,1,0,1],
-                [1,0,1,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-                [1,0,1,0,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1,1],
-                [1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            ]
-            self.grid = np.array(laberinto_20x20)
-            self.agent_pos = [1, 1]
-            self.goal_pos = [18, 18]
-            self.grid[self.goal_pos[0], self.goal_pos[1]] = 0
-        # Laberinto 15x15 fijo y completo
-        elif self.width == 15 and self.height == 15:
-            laberinto_15x15 = [
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-                [1,0,0,0,1,0,0,0,1,0,0,0,0,0,1],
-                [1,1,1,0,1,0,1,0,1,1,1,1,1,0,1],
-                [1,0,0,0,0,0,1,0,0,0,0,0,1,0,1],
-                [1,0,1,1,1,1,1,1,1,1,1,0,1,0,1],
-                [1,0,1,0,0,0,0,0,0,0,1,0,1,0,1],
-                [1,0,1,0,1,1,1,1,0,1,1,0,1,0,1],
-                [1,0,1,0,1,0,0,1,0,0,0,0,1,0,1],
-                [1,0,1,0,1,0,1,1,1,1,1,1,1,0,1],
-                [1,0,1,0,0,0,0,0,0,0,0,0,0,0,1],
-                [1,0,1,1,1,1,1,1,1,1,1,1,1,1,1],
-                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,0,1],
-                [1,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-                [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            ]
-            self.grid = np.array(laberinto_15x15)
-            self.agent_pos = [1, 1]
-            self.goal_pos = [13, 13]
-            self.grid[self.goal_pos[0], self.goal_pos[1]] = 0
-            
-        # Asegurar que la meta sea accesible
-        self.grid[self.goal_pos[0], self.goal_pos[1]] = 0
-        self.grid[self.goal_pos[0]-1, self.goal_pos[1]] = 0
-        self.grid[self.goal_pos[0], self.goal_pos[1]-1] = 0
-    
-    def reset(self):
-        """Reinicia el laberinto al estado inicial"""
-        self.agent_pos = [1, 1]
-        self.moves_count = 0
-        return tuple(self.agent_pos)
-    
-    def move(self, action):
-        """Ejecuta una acción y devuelve reward, done"""
-        # 0: arriba, 1: derecha, 2: abajo, 3: izquierda
-        new_pos = self.agent_pos.copy()
-        
-        if action == 0:  # arriba
-            new_pos[0] -= 1
-        elif action == 1:  # derecha
-            new_pos[1] += 1
-        elif action == 2:  # abajo
-            new_pos[0] += 1
-        elif action == 3:  # izquierda
-            new_pos[1] -= 1
-            
-        # Verificar si el movimiento es válido
-        if (0 <= new_pos[0] < self.height and 
-            0 <= new_pos[1] < self.width and 
-            self.grid[new_pos[0], new_pos[1]] != 1):
-            self.agent_pos = new_pos
-            
-        self.moves_count += 1
-            
-        # Verificar si llegó a la meta
-        if self.agent_pos == self.goal_pos:
-            return 100, True  # Recompensa alta por llegar a la meta
-            
-        # Verificar si se excedió el límite de movimientos
-        if self.moves_count >= self.max_moves:
-            return -100, True  # Penalización por exceder el límite
-            
-        return -1, False  # Pequeña penalización por cada movimiento
-    
-    def get_state(self):
-        """Devuelve el estado actual como tupla"""
-        return tuple(self.agent_pos)
-
+from maze import Maze  # Importar la clase Maze desde maze.py
 
 class QLearningAgent:
     def __init__(self, n_actions=4, learning_rate=0.1, discount_factor=0.95, epsilon=1.0):
@@ -262,12 +149,12 @@ def test_agent(agent, maze_size, test_episodes=100):
     return success_rate, avg_steps
 
 
-def plot_training_metrics(metrics_15x15, metrics_20x20):
+def plot_training_metrics(metrics_15x15, metrics_20x20, metrics_25x25):
     """Visualiza las métricas de entrenamiento"""
-    fig, axes = plt.subplots(2, 3, figsize=(18, 10))
+    fig, axes = plt.subplots(3, 3, figsize=(18, 18))
     
-    sizes = ['15x15', '20x20']
-    metrics = [metrics_15x15, metrics_20x20]
+    sizes = ['15x15', '20x20', '25x25']
+    metrics = [metrics_15x15, metrics_20x20, metrics_25x25]
     
     for i, (size, (rewards, steps, success)) in enumerate(zip(sizes, metrics)):
         # Reward por episodio
@@ -298,7 +185,7 @@ def plot_training_metrics(metrics_15x15, metrics_20x20):
     plt.show()
 
 
-def save_models(agent_15x15, agent_20x20):
+def save_models(agent_15x15, agent_20x20, agent_25x25):
     """Guarda los modelos entrenados"""
     models = {
         'agent_15x15': {
@@ -320,6 +207,16 @@ def save_models(agent_15x15, agent_20x20):
                 'epsilon_min': agent_20x20.epsilon_min,
                 'epsilon_decay': agent_20x20.epsilon_decay
             }
+        },
+        'agent_25x25': {
+            'q_table': dict(agent_25x25.q_table),
+            'hyperparameters': {
+                'learning_rate': agent_25x25.learning_rate,
+                'discount_factor': agent_25x25.discount_factor,
+                'epsilon': agent_25x25.epsilon,
+                'epsilon_min': agent_25x25.epsilon_min,
+                'epsilon_decay': agent_25x25.epsilon_decay
+            }
         }
     }
     
@@ -330,6 +227,89 @@ def save_models(agent_15x15, agent_20x20):
     print("Archivo: trained_agents.pkl")
     print(f"Tamaño Q-table 15x15: {len(models['agent_15x15']['q_table'])} estados")
     print(f"Tamaño Q-table 20x20: {len(models['agent_20x20']['q_table'])} estados")
+    print(f"Tamaño Q-table 25x25: {len(models['agent_25x25']['q_table'])} estados")
+
+
+def train_agent_25x25(episodes=15000):
+    """Entrena el agente en el laberinto 25x25 con obstáculos dinámicos"""
+    print("\n=== Entrenando en laberinto 25x25 con obstáculos dinámicos ===")
+    
+    # Crear ambiente y agente
+    maze = Maze(25, 25)
+    agent = QLearningAgent(learning_rate=0.1, discount_factor=0.99, epsilon=1.0)
+    
+    # Métricas de entrenamiento
+    episode_rewards = []
+    episode_steps = []
+    success_rate = []
+    
+    # Variables para tracking
+    recent_successes = []
+    
+    for episode in tqdm(range(episodes), desc="Entrenando 25x25"):
+        state = maze.reset()
+        total_reward = 0
+        steps = 0
+        done = False
+        
+        # Agregar obstáculo inicial
+        maze.add_random_obstacle(1)
+        
+        while not done:
+            # Seleccionar acción
+            action = agent.get_action(state)
+            
+            # Ejecutar acción
+            reward, done = maze.move(action)
+            next_state = maze.get_state()
+            
+            # Modificar recompensas para mejor aprendizaje
+            if reward == 100:  # Llegar a la meta
+                reward = 500  # Aumentar recompensa por llegar a la meta
+            elif reward == -100:  # Exceder límite de movimientos
+                reward = -50  # Reducir penalización
+            elif reward == -10:  # Chocar con obstáculo
+                reward = -30  # Penalización moderada por chocar con obstáculo
+            
+            # Actualizar Q-table
+            agent.update_q_table(state, action, reward, next_state, done)
+            
+            # Actualizar estado
+            state = next_state
+            total_reward += reward
+            steps += 1
+            
+            # Agregar obstáculo cada 15 movimientos
+            if steps % 15 == 0:
+                maze.add_random_obstacle(1)
+            
+            # Actualizar obstáculos
+            maze.update_obstacles()
+        
+        # Reducir epsilon más lentamente
+        agent.decay_epsilon()
+        
+        # Guardar métricas
+        episode_rewards.append(total_reward)
+        episode_steps.append(steps)
+        
+        # Calcular tasa de éxito (últimos 100 episodios)
+        success = reward == 500  # Consideramos éxito solo si llegó a la meta
+        recent_successes.append(success)
+        if len(recent_successes) > 100:
+            recent_successes.pop(0)
+        
+        success_rate.append(np.mean(recent_successes) * 100)
+        
+        # Mostrar progreso cada 1000 episodios
+        if (episode + 1) % 1000 == 0:
+            avg_reward = np.mean(episode_rewards[-100:])
+            avg_steps = np.mean(episode_steps[-100:])
+            print(f"Episodio {episode + 1}: Reward promedio: {avg_reward:.2f}, "
+                  f"Pasos promedio: {avg_steps:.2f}, Epsilon: {agent.epsilon:.3f}, "
+                  f"Tasa de éxito: {success_rate[-1]:.1f}%")
+    
+    return agent, episode_rewards, episode_steps, success_rate
 
 
 def main():
@@ -344,14 +324,19 @@ def main():
     agent_20x20, rewards_20x20, steps_20x20, success_20x20 = train_agent(20, episodes=7000)
     test_agent(agent_20x20, 20)
     
+    # Entrenar agente para laberinto 25x25
+    agent_25x25, rewards_25x25, steps_25x25, success_25x25 = train_agent_25x25()
+    test_agent(agent_25x25, 25)
+    
     # Visualizar métricas
     plot_training_metrics(
         (rewards_15x15, steps_15x15, success_15x15),
-        (rewards_20x20, steps_20x20, success_20x20)
+        (rewards_20x20, steps_20x20, success_20x20),
+        (rewards_25x25, steps_25x25, success_25x25)
     )
     
     # Guardar modelos
-    save_models(agent_15x15, agent_20x20)
+    save_models(agent_15x15, agent_20x20, agent_25x25)
     
     print("\n=== Entrenamiento completado ===")
 

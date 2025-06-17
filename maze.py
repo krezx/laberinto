@@ -8,7 +8,11 @@ class Maze:
         self.agent_pos = [1, 1]  # Posición inicial del agente
         self.goal_pos = [height-2, width-2]  # Posición de la meta
         self.moves_count = 0
-        self.max_moves = (width + height) * 3  # 3 veces el tamaño del laberinto
+        # Aumentar el límite de movimientos para el laberinto 25x25
+        if width == 25 and height == 25:
+            self.max_moves = (width + height) * 10  # 6 veces el tamaño del laberinto para 25x25
+        else:
+            self.max_moves = (width + height) * 3  # 3 veces el tamaño del laberinto para otros tamaños
         self.dynamic_obstacles = {}  # Diccionario para almacenar obstáculos dinámicos y sus tiempos de vida
         
         # Generar laberinto predefinido según el tamaño
@@ -104,13 +108,24 @@ class Maze:
         self.grid[self.goal_pos[0]-1, self.goal_pos[1]] = 0
         self.grid[self.goal_pos[0], self.goal_pos[1]-1] = 0
     
+    def get_valid_paths(self):
+        """Obtiene las coordenadas de las rutas válidas hacia la meta"""
+        valid_paths = []
+        for y in range(self.height):
+            for x in range(self.width):
+                if self.grid[y, x] == 0:  # Si es un camino válido
+                    valid_paths.append((y, x))
+        return valid_paths
+
     def add_random_obstacle(self, num_obstacles=1):
-        # Agregar obstáculos aleatorios
+        """Agrega obstáculos aleatorios en las rutas válidas del laberinto"""
+        valid_paths = self.get_valid_paths()
         for _ in range(num_obstacles):
             attempts = 0
             while attempts < 100:  # Límite de intentos para evitar bucles infinitos
-                x = np.random.randint(1, self.width-1)
-                y = np.random.randint(1, self.height-1)
+                # Seleccionar una posición aleatoria de las rutas válidas
+                pos = valid_paths[np.random.randint(0, len(valid_paths))]
+                y, x = pos
                 # Verificar que el obstáculo esté a al menos 2 casillas del agente
                 if (abs(y - self.agent_pos[0]) >= 2 or abs(x - self.agent_pos[1]) >= 2) and \
                    [y, x] != self.goal_pos and self.grid[y, x] == 0:
@@ -120,7 +135,7 @@ class Maze:
                 attempts += 1
     
     def update_obstacles(self):
-        # Actualizar el tiempo de vida de los obstáculos
+        """Actualiza el estado de los obstáculos dinámicos"""
         obstacles_to_remove = []
         for pos, lifetime in self.dynamic_obstacles.items():
             self.dynamic_obstacles[pos] = lifetime - 1
@@ -151,8 +166,12 @@ class Maze:
         # Verificar si el movimiento es válido
         if (0 <= new_pos[0] < self.height and 
             0 <= new_pos[1] < self.width and 
-            self.grid[new_pos[0], new_pos[1]] != 1 and  # No es pared
-            self.grid[new_pos[0], new_pos[1]] != 2):    # No es obstáculo dinámico
+            self.grid[new_pos[0], new_pos[1]] != 1):  # No es pared
+            
+            # Verificar si es un obstáculo dinámico
+            if self.grid[new_pos[0], new_pos[1]] == 2:
+                return -10, False  # Penalización por intentar moverse a un obstáculo
+            
             self.agent_pos = new_pos
             
         # Verificar si llegó a la meta
@@ -166,10 +185,25 @@ class Maze:
         return -1, False  # Pequeña penalización por cada movimiento
     
     def get_state(self):
+        """Devuelve el estado actual como tupla"""
+        return tuple(self.agent_pos)  # Retornar solo la posición del agente como tupla
+
+    def get_full_state(self):
+        """Devuelve el estado completo para la visualización"""
         return {
             'grid': self.grid.tolist(),
             'agent_pos': self.agent_pos,
             'goal_pos': self.goal_pos,
             'moves_count': self.moves_count,
             'max_moves': self.max_moves
-        } 
+        }
+
+
+    def reset(self):
+        """Reinicia el laberinto al estado inicial"""
+        self.agent_pos = [1, 1]
+        self.moves_count = 0
+        self.dynamic_obstacles = {}  # Limpiar obstáculos dinámicos
+        self.grid = np.ones((self.height, self.width))  # Reiniciar el grid
+        self.generate_predefined_maze()  # Regenerar el laberinto
+        return tuple(self.agent_pos)  # Retornar el estado inicial 

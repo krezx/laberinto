@@ -178,6 +178,48 @@
                 min-height: 6px;
             }
         }
+        .maze-container {
+            display: inline-block;
+            margin: 20px;
+        }
+        
+        .maze-row {
+            display: flex;
+        }
+        
+        .maze-cell {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ccc;
+        }
+        
+        .wall {
+            background-color: #333;
+        }
+        
+        .obstacle {
+            background-color: #ff6b6b;
+        }
+        
+        .agent {
+            background-color: #4CAF50;
+        }
+        
+        .goal {
+            background-color: #2196F3;
+        }
+        
+        #trainingControls {
+            display: none;
+            margin: 20px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        
+        .training-info {
+            margin: 10px 0;
+        }
     </style>
 </head>
 <body>
@@ -250,9 +292,21 @@
         </div>
     </div>
 
+    <div id="trainingControls">
+        <h3>Entrenamiento en vivo - Laberinto 25x25</h3>
+        <button id="startTraining" onclick="startTraining()">Iniciar Entrenamiento</button>
+        <button id="stopTraining" onclick="stopTraining()" disabled>Detener Entrenamiento</button>
+        <div class="training-info">
+            <p>Epsilon: <span id="epsilon">1.000</span></p>
+            <p>Última recompensa: <span id="reward">0</span></p>
+        </div>
+    </div>
+
     <script>
         let currentMaze = null;
         let simulationInterval = null;
+        let trainingInterval = null;
+        let isTraining = false;
 
         // Al cargar la página, ocultar todos los laberintos
         window.onload = function() {
@@ -420,6 +474,96 @@
                 }
             }
         }
+
+        function loadMaze(mazeId) {
+            fetch(`/get_maze/${mazeId}`)
+                .then(response => response.json())
+                .then(data => {
+                    currentMaze = data;
+                    renderMaze(data);
+                    
+                    // Si es el laberinto 25x25, mostrar opciones de entrenamiento
+                    if (mazeId === 3) {
+                        document.getElementById('trainingControls').style.display = 'block';
+                    } else {
+                        document.getElementById('trainingControls').style.display = 'none';
+                    }
+                });
+        }
+
+        function startTraining() {
+            if (!isTraining) {
+                isTraining = true;
+                document.getElementById('startTraining').disabled = true;
+                document.getElementById('stopTraining').disabled = false;
+                
+                trainingInterval = setInterval(() => {
+                    fetch('/train_25x25')
+                        .then(response => response.json())
+                        .then(data => {
+                            currentMaze = data.state;
+                            renderMaze(data.state);
+                            
+                            // Actualizar información de entrenamiento
+                            document.getElementById('epsilon').textContent = data.epsilon.toFixed(3);
+                            document.getElementById('reward').textContent = data.reward;
+                            
+                            if (data.done) {
+                                stopTraining();
+                            }
+                        });
+                }, 100); // Actualizar cada 100ms
+            }
+        }
+
+        function stopTraining() {
+            if (isTraining) {
+                isTraining = false;
+                clearInterval(trainingInterval);
+                document.getElementById('startTraining').disabled = false;
+                document.getElementById('stopTraining').disabled = true;
+            }
+        }
+
+        function renderMaze(data) {
+            const container = document.getElementById('mazeContainer');
+            container.innerHTML = '';
+            
+            const grid = data.grid;
+            const agentPos = data.agent_pos;
+            const goalPos = data.goal_pos;
+            
+            for (let y = 0; y < grid.length; y++) {
+                const row = document.createElement('div');
+                row.className = 'maze-row';
+                
+                for (let x = 0; x < grid[y].length; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'maze-cell';
+                    
+                    if (grid[y][x] === 1) {
+                        cell.classList.add('wall');
+                    } else if (grid[y][x] === 2) {
+                        cell.classList.add('obstacle');
+                    }
+                    
+                    if (y === agentPos[0] && x === agentPos[1]) {
+                        cell.classList.add('agent');
+                    }
+                    
+                    if (y === goalPos[0] && x === goalPos[1]) {
+                        cell.classList.add('goal');
+                    }
+                    
+                    row.appendChild(cell);
+                }
+                
+                container.appendChild(row);
+            }
+        }
+
+        // Cargar el primer laberinto al iniciar
+        loadMaze(1);
     </script>
 </body>
 </html> 
