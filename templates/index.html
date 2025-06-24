@@ -1,0 +1,716 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Laberinto Interactivo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #fff;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 20px;
+        }
+        .maze-container {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: flex-start;
+            width: 100%;
+        }
+        .maze {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            display: none;
+            width: auto;
+            max-width: 800px;
+            flex-direction: column;
+            margin: 0 auto;
+        }
+        .maze.active {
+            display: flex;
+            margin: 0 auto;
+        }
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        button {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .grid {
+            display: grid;
+            gap: 1px;
+            background-color: #ddd;
+            padding: 2px;
+            border-radius: 5px;
+            width: fit-content;
+            margin: 0 auto;
+            max-width: 100%;
+            aspect-ratio: 1;
+        }
+        .cell {
+            background-color: #fff;
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            aspect-ratio: 1;
+            min-width: 8px;
+            min-height: 8px;
+        }
+        .wall {
+            background-color: #333;
+        }
+        .agent {
+            background: url('/static/agent.png') center center no-repeat;
+            background-size: cover;
+            border-radius: 50%;
+            border: 2px solid #2196F3;
+        }
+        .goal {
+            background-color: #4CAF50;
+            border-radius: 5px;
+        }
+        .dynamic-obstacle {
+            background-color: #ff0000;
+        }
+        .stats {
+            margin-top: 15px;
+            text-align: center;
+            padding: 10px;
+            background-color: #f9f9f9;
+            border-radius: 5px;
+        }
+        .stats p {
+            margin: 5px 0;
+            font-weight: bold;
+        }
+        .progress-bar-container {
+            width: 100%;
+            max-width: 300px;
+            margin: 10px auto 0;
+        }
+        .progress-bar {
+            height: 20px;
+            background-color: #e0e0e0;
+            border-radius: 10px;
+            overflow: hidden;
+            width: 100%;
+        }
+        .progress {
+            height: 100%;
+            background-color: #4CAF50;
+            transition: width 0.3s ease;
+            border-radius: 10px;
+        }
+        .legend {
+            display: flex;
+            gap: 15px;
+            margin: 20px 0;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 5px 10px;
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+        .legend-item span {
+            font-size: 14px;
+            font-weight: 500;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 30px;
+        }
+        h2 {
+            text-align: center;
+            color: #555;
+            margin-bottom: 15px;
+        }
+        @media (max-width: 768px) {
+            .maze {
+                padding: 15px;
+                max-width: 95%;
+            }
+            .controls {
+                flex-direction: column;
+                align-items: center;
+            }
+            .legend {
+                flex-direction: column;
+                align-items: center;
+                gap: 10px;
+            }
+            .cell {
+                min-width: 6px;
+                min-height: 6px;
+            }
+        }
+        .maze-container {
+            display: inline-block;
+            margin: 20px;
+        }
+        
+        .maze-row {
+            display: flex;
+        }
+        
+        .maze-cell {
+            width: 20px;
+            height: 20px;
+            border: 1px solid #ccc;
+        }
+        
+        .wall {
+            background-color: #333;
+        }
+        
+        .obstacle {
+            background-color: #ff6b6b;
+        }
+        
+        .agent {
+            background: url('/static/agent.png') center center no-repeat;
+            background-size: cover;
+            border-radius: 50%;
+            border: 2px solid #2196F3;
+        }
+        
+        .goal {
+            background-color: #2196F3;
+        }
+        
+        #trainingControls {
+            display: none;
+            margin: 20px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+        }
+        
+        .training-info {
+            margin: 10px 0;
+        }
+        .toast {
+            visibility: hidden;
+            min-width: 250px;
+            margin-left: -125px;
+            background-color: #333;
+            color: #fff;
+            text-align: center;
+            border-radius: 8px;
+            padding: 16px;
+            position: fixed;
+            z-index: 1000;
+            left: 50%;
+            bottom: 40px;
+            font-size: 17px;
+            opacity: 0;
+            transition: opacity 0.5s, bottom 0.5s;
+        }
+        .toast.show {
+            visibility: visible;
+            opacity: 1;
+            bottom: 60px;
+        }
+        .pre-goal {
+            background-color: yellow !important;
+        }
+        .agent-on-goal {
+            background: url('/static/agent.png') center center no-repeat, #4CAF50;
+            background-size: cover, cover;
+            border-radius: 50%;
+            border: 2px solid #4CAF50;
+            box-shadow: 0 0 0 4px #4CAF50;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Laberinto Interactivo</h1>
+        <div class="controls">
+            <button onclick="startSimulation(1)">Laberinto 1 (15x15)</button>
+            <button onclick="startSimulation(2)">Laberinto 2 (20x20)</button>
+            <button onclick="startSimulation(3)">Laberinto 3 (25x25)</button>
+            <button onclick="resetMaze()" id="resetButton" style="background-color: #f44336; display: none;">Reiniciar Laberinto</button>
+        </div>
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #2196F3;"></div>
+                <span>Agente</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #4CAF50;"></div>
+                <span>Meta</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #333;"></div>
+                <span>Pared</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color" style="background-color: #ff0000;"></div>
+                <span>Obstáculo Temporal</span>
+            </div>
+        </div>
+        <div class="maze-container">
+            <div id="maze1" class="maze">
+                <h2>Laberinto 1 (15x15)</h2>
+                <div id="grid1" class="grid"></div>
+                <div class="stats">
+                    <p>Movimientos: <span id="moves1">0</span> / <span id="max-moves1">0</span></p>
+                    <p>Recompensa: <span id="reward1">0</span></p>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar">
+                            <div id="progress1" class="progress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="maze2" class="maze">
+                <h2>Laberinto 2 (20x20)</h2>
+                <div id="grid2" class="grid"></div>
+                <div class="stats">
+                    <p>Movimientos: <span id="moves2">0</span> / <span id="max-moves2">0</span></p>
+                    <p>Recompensa: <span id="reward2">0</span></p>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar">
+                            <div id="progress2" class="progress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div id="maze3" class="maze">
+                <h2>Laberinto 3 (25x25)</h2>
+                <div id="grid3" class="grid"></div>
+                <div class="stats">
+                    <p>Movimientos: <span id="moves3">0</span> / <span id="max-moves3">0</span></p>
+                    <p>Recompensa: <span id="reward3">0</span></p>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar">
+                            <div id="progress3" class="progress" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="extra-controls" style="margin-top: 20px; text-align: center;">
+                    <button id="btnSkipTrain" onclick="skipTraining25x25()">Entrenamiento Rapido</button>
+                    <button id="btnSimulateTrained" onclick="simulateTrained25x25()" disabled>Simular con modelo entrenado</button>
+                    <button id="btnContinueTrain" onclick="continueTraining25x25()">Volver a entrenar</button>
+                    <span id="trainStatus" style="margin-left: 15px; color: #333; font-weight: bold;"></span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="trainingControls">
+        <h3>Entrenamiento en vivo - Laberinto 25x25</h3>
+        <button id="startTraining" onclick="startTraining()">Iniciar Entrenamiento</button>
+        <button id="stopTraining" onclick="stopTraining()" disabled>Detener Entrenamiento</button>
+        <div class="training-info">
+            <p>Epsilon: <span id="epsilon">1.000</span></p>
+            <p>Última recompensa: <span id="reward">0</span></p>
+        </div>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script>
+        let currentMaze = null;
+        let simulationInterval = null;
+        let trainingInterval = null;
+        let isTraining = false;
+        let modelo25Entrenado = false;
+
+        // Al cargar la página, ocultar todos los laberintos
+        window.onload = function() {
+            hideAllMazes();
+        };
+
+        function hideAllMazes() {
+            document.querySelectorAll('.maze').forEach(maze => {
+                maze.classList.remove('active');
+            });
+        }
+
+        function showMaze(mazeId) {
+            hideAllMazes();
+            document.getElementById(`maze${mazeId}`).classList.add('active');
+            if (mazeId === 3) {
+                document.getElementById('btnSimulateTrained').disabled = !modelo25Entrenado;
+                setTrainStatus('');
+                // Iniciar entrenamiento en vivo automáticamente al seleccionar el laberinto 25x25
+                startTraining();
+            }
+        }
+
+        function calculateCellSize(width, height) {
+            const maxGridSize = Math.min(window.innerWidth * 0.8, 600);
+            const cellSize = Math.floor(maxGridSize / Math.max(width, height));
+            return Math.max(cellSize, 8); // Mínimo 8px por celda
+        }
+
+        function setProgressBarWidth(mazeId, width) {
+            const progressBarContainer = document.querySelector(`#maze${mazeId} .progress-bar-container`);
+            if (progressBarContainer) {
+                progressBarContainer.style.width = `${width}px`;
+            }
+        }
+
+        function createGrid(mazeId, width, height) {
+            const grid = document.getElementById(`grid${mazeId}`);
+            const cellSize = calculateCellSize(width, height);
+            
+            grid.style.gridTemplateColumns = `repeat(${width}, ${cellSize}px)`;
+            grid.style.gridTemplateRows = `repeat(${height}, ${cellSize}px)`;
+            grid.innerHTML = '';
+            
+            for (let i = 0; i < height; i++) {
+                for (let j = 0; j < width; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.id = `cell-${mazeId}-${i}-${j}`;
+                    cell.style.width = `${cellSize}px`;
+                    cell.style.height = `${cellSize}px`;
+                    grid.appendChild(cell);
+                }
+            }
+        }
+
+        // Agregar listener para redimensionar la ventana
+        window.addEventListener('resize', () => {
+            if (currentMaze) {
+                const maze = document.getElementById(`maze${currentMaze}`);
+                const grid = maze.querySelector('.grid');
+                const width = grid.style.gridTemplateColumns.split(' ').length;
+                const height = grid.style.gridTemplateRows.split(' ').length;
+                createGrid(currentMaze, width, height);
+                // Actualizar la visualización actual
+                fetch(`/get_maze/${currentMaze}`)
+                    .then(response => response.json())
+                    .then(state => updateGrid(currentMaze, state));
+            }
+        });
+
+        function updateGrid(mazeId, state) {
+            const { grid, agent_pos, goal_pos } = state;
+            
+            // Actualizar celdas
+            for (let i = 0; i < grid.length; i++) {
+                for (let j = 0; j < grid[i].length; j++) {
+                    const cell = document.getElementById(`cell-${mazeId}-${i}-${j}`);
+                    cell.className = 'cell';
+                    
+                    if (grid[i][j] === 1) {
+                        cell.classList.add('wall');
+                    } else if (grid[i][j] === 2) {
+                        cell.classList.add('dynamic-obstacle');
+                    }
+                }
+            }
+            
+            // Mostrar agente sobre la meta si coincide
+            if (agent_pos[0] === goal_pos[0] && agent_pos[1] === goal_pos[1]) {
+                const cell = document.getElementById(`cell-${mazeId}-${agent_pos[0]}-${agent_pos[1]}`);
+                cell.classList.add('agent-on-goal');
+            } else {
+                // Agente
+                const agentCell = document.getElementById(`cell-${mazeId}-${agent_pos[0]}-${agent_pos[1]}`);
+                agentCell.classList.add('agent');
+                // Meta
+                const goalCell = document.getElementById(`cell-${mazeId}-${goal_pos[0]}-${goal_pos[1]}`);
+                goalCell.classList.add('goal');
+            }
+        }
+
+        function updateStats(mazeId, state, reward) {
+            document.getElementById(`moves${mazeId}`).textContent = state.moves_count;
+            document.getElementById(`max-moves${mazeId}`).textContent = state.max_moves;
+            document.getElementById(`reward${mazeId}`).textContent = reward;
+            
+            // Actualizar barra de progreso
+            const progress = (state.moves_count / state.max_moves) * 100;
+            document.getElementById(`progress${mazeId}`).style.width = `${progress}%`;
+        }
+
+        async function startSimulation(mazeId) {
+            if (simulationInterval) {
+                clearInterval(simulationInterval);
+            }
+            
+            currentMaze = mazeId;
+            showMaze(mazeId);
+            
+            // Mostrar botón de reinicio
+            document.getElementById('resetButton').style.display = 'inline-block';
+            
+            // Obtener estado inicial del laberinto
+            const response = await fetch(`/get_maze/${mazeId}`);
+            const state = await response.json();
+            
+            // Crear grid
+            createGrid(mazeId, state.grid[0].length, state.grid.length);
+            updateGrid(mazeId, state);
+            
+            // Iniciar simulación
+            simulationInterval = setInterval(async () => {
+                const moveResponse = await fetch(`/move/${mazeId}`);
+                const moveData = await moveResponse.json();
+                
+                updateGrid(mazeId, moveData.state);
+                updateStats(mazeId, moveData.state, moveData.reward);
+                
+                if (moveData.done) {
+                    clearInterval(simulationInterval);
+                    if (moveData.reward > 0) {
+                        showToast('¡El agente ha llegado a la meta!');
+                    } else {
+                        showToast('¡El agente ha excedido el límite de movimientos!');
+                    }
+                }
+            }, 500);
+        }
+
+        async function resetMaze() {
+            if (currentMaze) {
+                // Limpiar el intervalo de simulación actual
+                if (simulationInterval) {
+                    clearInterval(simulationInterval);
+                    simulationInterval = null;
+                }
+                
+                try {
+                    // Llamar al endpoint de reinicio del servidor
+                    const response = await fetch(`/reset_maze/${currentMaze}`);
+                    if (!response.ok) {
+                        throw new Error('Error al reiniciar el laberinto');
+                    }
+                    
+                    // Reiniciar las estadísticas
+                    document.getElementById(`moves${currentMaze}`).textContent = '0';
+                    document.getElementById(`reward${currentMaze}`).textContent = '0';
+                    document.getElementById(`progress${currentMaze}`).style.width = '0%';
+                    
+                    if (currentMaze === 3) {
+                        modelo25Entrenado = false;
+                        document.getElementById('btnSimulateTrained').disabled = true;
+                        setTrainStatus('');
+                    }
+                    
+                    // Reiniciar la simulación
+                    startSimulation(currentMaze);
+                } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error al reiniciar el laberinto. Por favor, intente nuevamente.');
+                }
+            }
+        }
+
+        function loadMaze(mazeId) {
+            fetch(`/get_maze/${mazeId}`)
+                .then(response => response.json())
+                .then(data => {
+                    currentMaze = data;
+                    renderMaze(data);
+                    
+                    // Si es el laberinto 25x25, mostrar opciones de entrenamiento
+                    if (mazeId === 3) {
+                        document.getElementById('trainingControls').style.display = 'block';
+                    } else {
+                        document.getElementById('trainingControls').style.display = 'none';
+                    }
+                });
+        }
+
+        function startTraining() {
+            if (!isTraining) {
+                isTraining = true;
+                document.getElementById('startTraining').disabled = true;
+                document.getElementById('stopTraining').disabled = false;
+                trainingInterval = setInterval(() => {
+                    fetch('/train_25x25')
+                        .then(response => response.json())
+                        .then(data => {
+                            // Actualizar visualización y stats del laberinto 25x25
+                            updateGrid(3, data.state);
+                            updateStats(3, data.state, data.reward);
+                            // Actualizar información de entrenamiento en controles extra (opcional)
+                            document.getElementById('epsilon').textContent = data.epsilon.toFixed(3);
+                            document.getElementById('reward').textContent = data.reward;
+                            if (data.done) {
+                                stopTraining();
+                            }
+                        });
+                }, 100); // Actualizar cada 100ms
+            }
+        }
+
+        function stopTraining() {
+            if (isTraining) {
+                isTraining = false;
+                clearInterval(trainingInterval);
+                document.getElementById('startTraining').disabled = false;
+                document.getElementById('stopTraining').disabled = true;
+            }
+        }
+
+        function renderMaze(data) {
+            const container = document.getElementById('mazeContainer');
+            container.innerHTML = '';
+            
+            const grid = data.grid;
+            const agentPos = data.agent_pos;
+            const goalPos = data.goal_pos;
+            
+            for (let y = 0; y < grid.length; y++) {
+                const row = document.createElement('div');
+                row.className = 'maze-row';
+                
+                for (let x = 0; x < grid[y].length; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'maze-cell';
+                    
+                    if (grid[y][x] === 1) {
+                        cell.classList.add('wall');
+                    } else if (grid[y][x] === 2) {
+                        cell.classList.add('obstacle');
+                    }
+                    
+                    if (y === agentPos[0] && x === agentPos[1]) {
+                        cell.classList.add('agent');
+                    }
+                    
+                    if (y === goalPos[0] && x === goalPos[1]) {
+                        cell.classList.add('goal');
+                    }
+                    
+                    row.appendChild(cell);
+                }
+                
+                container.appendChild(row);
+            }
+        }
+
+        async function skipTraining25x25() {
+            setTrainStatus('Entrenando rápidamente...');
+            disableTrainButtons(true);
+            const res = await fetch('/skip_training_25x25', {method: 'POST'});
+            const data = await res.json();
+            if (data.success) {
+                modelo25Entrenado = true;
+                setTrainStatus('Entrenamiento rápido completado.');
+                document.getElementById('btnSimulateTrained').disabled = false;
+            } else {
+                setTrainStatus('Error en el entrenamiento.');
+            }
+            disableTrainButtons(false);
+        }
+
+        async function simulateTrained25x25() {
+            setTrainStatus('Simulando con modelo entrenado...');
+            disableTrainButtons(true);
+            const res = await fetch('/simulate_trained_25x25', {method: 'POST'});
+            const data = await res.json();
+            if (data.success) {
+                showMaze(3);
+                createGrid(3, data.state.grid[0].length, data.state.grid.length);
+
+                // Animar usando los estados completos para mostrar obstáculos dinámicos
+                const estados = data.estados;
+                let paso = 0;
+
+                function animarEstados() {
+                    const estado = estados[paso];
+                    updateGrid(3, estado);
+                    updateStats(3, estado, data.reward);
+
+                    // Resaltar la celda anterior a la meta en el penúltimo paso
+                    if (paso === estados.length - 2) {
+                        const preGoal = estado.agent_pos;
+                        const cell = document.getElementById(`cell-3-${preGoal[0]}-${preGoal[1]}`);
+                        if (cell) cell.classList.add('pre-goal');
+                    }
+
+                    paso++;
+                    if (paso < estados.length) {
+                        setTimeout(animarEstados, 100); // 100ms entre pasos
+                    } else {
+                        setTrainStatus('Simulación óptima completada.');
+                        disableTrainButtons(false);
+                    }
+                }
+                animarEstados();
+            } else {
+                setTrainStatus('Error en la simulación.');
+                disableTrainButtons(false);
+            }
+        }
+
+        async function continueTraining25x25() {
+            setTrainStatus('Reiniciando entrenamiento en vivo...');
+            disableTrainButtons(true);
+            // Reinicia solo el entorno, NO la Q-table
+            await fetch('/reset_maze/3');
+            setTrainStatus('Entrenamiento en vivo continuado. El agente sigue aprendiendo.');
+            startTraining();
+            disableTrainButtons(false);
+        }
+
+        function setTrainStatus(msg) {
+            document.getElementById('trainStatus').textContent = msg;
+        }
+
+        function disableTrainButtons(disabled) {
+            document.getElementById('btnSkipTrain').disabled = disabled;
+            document.getElementById('btnSimulateTrained').disabled = disabled || !modelo25Entrenado;
+            document.getElementById('btnContinueTrain').disabled = disabled;
+        }
+
+        function showToast(message, duration = 3000) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.className = 'toast show';
+            setTimeout(() => {
+                toast.className = 'toast';
+            }, duration);
+        }
+
+        // Cargar el primer laberinto al iniciar
+        loadMaze(1);
+    </script>
+</body>
+</html> 
