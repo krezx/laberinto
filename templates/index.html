@@ -624,7 +624,7 @@
         }
 
         function startTraining() {
-            if (!isTraining) {
+            if (!isTraining && !modelo25Entrenado) {
                 isTraining = true;
                 document.getElementById('startTraining').disabled = true;
                 document.getElementById('stopTraining').disabled = false;
@@ -643,11 +643,11 @@
                             // Si se completó el entrenamiento (primer éxito), detener entrenamiento
                             if (data.entrenado && !modelo25Entrenado) {
                                 modelo25Entrenado = true;
+                                stopTraining();
                                 document.getElementById('btnSimulateTrained').disabled = false;
                                 document.getElementById('btnSimulateTrained').classList.remove('btn-blocked', 'btn-tooltip');
                                 setTrainStatus('¡Entrenamiento completado! El modelo está listo para simular.');
                                 showToast('¡Entrenamiento completado! Ya puedes usar "Simular con modelo entrenado"');
-                                stopTraining();
                                 resetMaze25Visual();
                                 return;
                             }
@@ -660,12 +660,13 @@
         }
 
         function stopTraining() {
-            if (isTraining) {
-                isTraining = false;
+            isTraining = false;
+            if (trainingInterval) {
                 clearInterval(trainingInterval);
-                document.getElementById('startTraining').disabled = false;
-                document.getElementById('stopTraining').disabled = true;
+                trainingInterval = null;
             }
+            document.getElementById('startTraining').disabled = false;
+            document.getElementById('stopTraining').disabled = true;
         }
 
         async function skipTraining25x25() {
