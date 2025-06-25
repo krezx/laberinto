@@ -128,7 +128,7 @@ def move(maze_id):
 
 @app.route('/train_25x25')
 def train_25x25():
-    """Entrena el agente 25x25 en vivo (un solo paso por llamada, visualización lenta) y guarda el modelo solo si mejora la ruta a la meta."""
+    """Entrena el agente 25x25 en vivo (un solo paso por llamada, visualización lenta) y guarda el modelo solo si mejora la ruta a la meta. Al primer éxito, detiene el entrenamiento y reinicia el agente al inicio."""
     global maze3, agent3, exitos_25x25, mejor_pasos_25x25, modelo_25x25_entrenado
     state = maze3.get_state()
     action = agent3.get_action(state)
@@ -140,8 +140,8 @@ def train_25x25():
         maze3.add_random_obstacle(1)
     agent3.decay_epsilon()
     
-    # Lógica de éxito: si reward es 100 (meta alcanzada), sumar éxito y guardar modelo solo si mejora la ruta
     modelo_guardado = False
+    entrenamiento_finalizado = False
     if reward == 100:
         exitos_25x25 += 1
         print(f"¡Éxito #{exitos_25x25} alcanzado!")
@@ -152,12 +152,13 @@ def train_25x25():
             save_model_25x25(agent3, mejor_pasos_25x25)
             modelo_guardado = True
             print(f"Modelo guardado con {pasos_actuales} pasos")
-        
-        # Reiniciar el laberinto para continuar entrenando
-        maze3 = Maze(25, 25)
-        print(f"Laberinto reiniciado. Continuando entrenamiento... ({exitos_25x25}/1 éxitos)")
+        # Al primer éxito, marcar como entrenado y reiniciar el laberinto
+        if exitos_25x25 == 1:
+            modelo_25x25_entrenado = True
+            entrenamiento_finalizado = True
+            maze3 = Maze(25, 25)  # Reiniciar el laberinto para visualización
+            print("Entrenamiento finalizado tras el primer éxito. Laberinto reiniciado.")
     
-    # Considerar entrenado si hay al menos 1 éxito (cambiado de 3 a 1)
     entrenado = exitos_25x25 >= 1
     if entrenado:
         print(f"🎉 ¡ENTRENAMIENTO COMPLETADO! {exitos_25x25} éxitos alcanzados")
@@ -171,7 +172,8 @@ def train_25x25():
         "exitos": exitos_25x25,
         "entrenado": entrenado,
         "mejor_pasos": mejor_pasos_25x25,
-        "modelo_guardado": modelo_guardado
+        "modelo_guardado": modelo_guardado,
+        "entrenamiento_finalizado": entrenamiento_finalizado
     }))
 
 @app.route('/skip_training_25x25', methods=['POST'])
@@ -263,11 +265,11 @@ def simulate_trained_25x25():
 
 @app.route('/continue_training_25x25', methods=['POST'])
 def continue_training_25x25():
-    """Continúa el entrenamiento del modelo 25x25 acumulando conocimiento y devuelve la simulación animada"""
+    """Realiza un solo episodio adicional de entrenamiento y devuelve la simulación de ese episodio, manteniendo la Q-table previa."""
     global maze3, agent3, modelo_25x25_entrenado
     from qlearning_trainer import train_agent_25x25
-    # Entrenar usando el agente actual (acumula conocimiento)
-    agent, _, _, _ = train_agent_25x25(episodes=5000, agente_existente=agent3)
+    # Entrenar usando el agente actual (acumula conocimiento), solo 1 episodio
+    agent, _, _, _ = train_agent_25x25(episodes=1, agente_existente=agent3)
     agent3 = agent
     modelo_25x25_entrenado = True
     # Simular el recorrido con el nuevo modelo entrenado

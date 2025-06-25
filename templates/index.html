@@ -382,7 +382,7 @@
                     </div>
                 </div>
                 <div class="extra-controls" style="margin-top: 20px; text-align: center;">
-                    <button id="btnSkipTrain" onclick="skipTraining25x25()">Entrenamiento Rapido</button>
+                    <button id="btnSkipTrain" onclick="skipTraining25x25()">Entrenar sin visualización</button>
                     <button id="btnSimulateTrained" onclick="simulateTrained25x25()" disabled class="btn-blocked btn-tooltip">Simular con modelo entrenado</button>
                     <button id="btnContinueTrain" onclick="continueTraining25x25()">Volver a entrenar</button>
                     <span id="trainStatus" style="margin-left: 15px; color: #333; font-weight: bold;"></span>
@@ -648,6 +648,7 @@
                                 setTrainStatus('¡Entrenamiento completado! El modelo está listo para simular.');
                                 showToast('¡Entrenamiento completado! Ya puedes usar "Simular con modelo entrenado"');
                                 stopTraining();
+                                resetMaze25Visual();
                                 return;
                             }
                         })
@@ -797,6 +798,21 @@
             } catch (error) {
                 console.log('No hay modelo existente o error al verificar:', error);
             }
+        }
+
+        function resetMaze25Visual() {
+            fetch('/reset_maze/3')
+                .then(response => response.json())
+                .then(() => {
+                    // Obtener el estado inicial y actualizar la visualización
+                    fetch('/get_maze/3')
+                        .then(response => response.json())
+                        .then(state => {
+                            createGrid(3, state.grid[0].length, state.grid.length);
+                            updateGrid(3, state);
+                            updateStats(3, state, 0);
+                        });
+                });
         }
 
         // Cargar el primer laberinto al iniciar
