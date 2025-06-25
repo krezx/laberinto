@@ -9,6 +9,19 @@ import pickle
 
 app = Flask(__name__)
 
+# === ELIMINAR MODELO 25x25 AL INICIAR ===
+if os.path.exists('trained_agents.pkl'):
+    try:
+        with open('trained_agents.pkl', 'rb') as f:
+            models = pickle.load(f)
+        if 'agent_25x25' in models:
+            del models['agent_25x25']
+            with open('trained_agents.pkl', 'wb') as f:
+                pickle.dump(models, f)
+            print("Modelo 25x25 eliminado al iniciar.")
+    except Exception as e:
+        print(f"Error eliminando modelo 25x25 al iniciar: {e}")
+
 # Variables globales para el estado del modelo 25x25
 modelo_25x25_entrenado = False
 exitos_25x25 = 0  # Contador de éxitos para el entrenamiento Q-learning
@@ -116,7 +129,7 @@ def move(maze_id):
 @app.route('/train_25x25')
 def train_25x25():
     """Entrena el agente 25x25 en vivo (un solo paso por llamada, visualización lenta) y guarda el modelo solo si mejora la ruta a la meta."""
-    global maze3, agent3, exitos_25x25, mejor_pasos_25x25
+    global maze3, agent3, exitos_25x25, mejor_pasos_25x25, modelo_25x25_entrenado
     state = maze3.get_state()
     action = agent3.get_action(state)
     reward, done = maze3.move(action)
@@ -126,18 +139,29 @@ def train_25x25():
     if maze3.moves_count % 15 == 0:
         maze3.add_random_obstacle(1)
     agent3.decay_epsilon()
+    
     # Lógica de éxito: si reward es 100 (meta alcanzada), sumar éxito y guardar modelo solo si mejora la ruta
+    modelo_guardado = False
     if reward == 100:
         exitos_25x25 += 1
+        print(f"¡Éxito #{exitos_25x25} alcanzado!")
         pasos_actuales = maze3.moves_count
         if mejor_pasos_25x25 is None or pasos_actuales < mejor_pasos_25x25:
             mejor_pasos_25x25 = pasos_actuales
             from qlearning_trainer import save_model_25x25
-            # Guardar mejor_pasos en hyperparameters
-           
             save_model_25x25(agent3, mejor_pasos_25x25)
-    # Considerar entrenado si hay al menos 3 éxitos
-    entrenado = exitos_25x25 >= 3
+            modelo_guardado = True
+            print(f"Modelo guardado con {pasos_actuales} pasos")
+        
+        # Reiniciar el laberinto para continuar entrenando
+        maze3 = Maze(25, 25)
+        print(f"Laberinto reiniciado. Continuando entrenamiento... ({exitos_25x25}/1 éxitos)")
+    
+    # Considerar entrenado si hay al menos 1 éxito (cambiado de 3 a 1)
+    entrenado = exitos_25x25 >= 1
+    if entrenado:
+        print(f"🎉 ¡ENTRENAMIENTO COMPLETADO! {exitos_25x25} éxitos alcanzados")
+    
     return jsonify(convert_numpy_types({
         "state": maze3.get_full_state(),
         "reward": reward,
@@ -146,7 +170,8 @@ def train_25x25():
         "epsilon": agent3.epsilon,
         "exitos": exitos_25x25,
         "entrenado": entrenado,
-        "mejor_pasos": mejor_pasos_25x25
+        "mejor_pasos": mejor_pasos_25x25,
+        "modelo_guardado": modelo_guardado
     }))
 
 @app.route('/skip_training_25x25', methods=['POST'])
@@ -184,30 +209,57 @@ def skip_training_25x25():
 def simulate_trained_25x25():
     """Simula el laberinto 25x25 usando siempre el modelo entrenado guardado. Devuelve la ruta recorrida."""
     global maze3
-    # Usar siempre el modelo guardado
-    from trained_agent import TrainedAgent
-    agent = TrainedAgent(25)
-    # Reiniciar el laberinto
-    maze3 = Maze(25, 25)
-    # Simulación paso a paso
-    state = maze3.get_state()
-    done = False
-    total_reward = 0
-    steps = 0
-    ruta = [list(maze3.agent_pos)]  # Guardar la posición inicial
-    estados = [convert_numpy_types(maze3.get_full_state())]  # Guardar el estado inicial
-    while not done and steps < maze3.max_moves:
-        action = agent.get_action(state)
-        reward, done = maze3.move(action)
-        maze3.update_obstacles()
-        if maze3.moves_count % 15 == 0:
-            maze3.add_random_obstacle(1)
+    try:
+        print("Iniciando simulación con modelo entrenado...")
+        # Usar siempre el modelo guardado
+        from trained_agent import TrainedAgent
+        agent = TrainedAgent(25)
+        # Reiniciar el laberinto
+        maze3 = Maze(25, 25)
+        # Simulación paso a paso
         state = maze3.get_state()
-        ruta.append(list(maze3.agent_pos))  # Guardar cada posición
-        estados.append(convert_numpy_types(maze3.get_full_state()))  # Guardar el estado tras cada paso
-        total_reward += reward
-        steps += 1
-    return jsonify({'success': True, 'message': 'Simulación completada.', 'reward': total_reward, 'steps': steps, 'done': done, 'state': convert_numpy_types(maze3.get_full_state()), 'ruta': ruta, 'estados': estados})
+        done = False
+        total_reward = 0
+        steps = 0
+        ruta = [list(maze3.agent_pos)]  # Guardar la posición inicial
+        estados = [convert_numpy_types(maze3.get_full_state())]  # Guardar el estado inicial
+        
+        print(f"Simulando desde estado inicial: {state}")
+        
+        while not done and steps < maze3.max_moves:
+            action = agent.get_action(state)
+            reward, done = maze3.move(action)
+            maze3.update_obstacles()
+            if maze3.moves_count % 15 == 0:
+                maze3.add_random_obstacle(1)
+            state = maze3.get_state()
+            ruta.append(list(maze3.agent_pos))  # Guardar cada posición
+            estados.append(convert_numpy_types(maze3.get_full_state()))  # Guardar el estado tras cada paso
+            total_reward += reward
+            steps += 1
+            
+            if steps % 50 == 0:
+                print(f"Simulación: paso {steps}, reward acumulado: {total_reward}")
+        
+        print(f"Simulación completada: {steps} pasos, reward total: {total_reward}, done: {done}")
+        print(f"Estados generados: {len(estados)}")
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Simulación completada.', 
+            'reward': total_reward, 
+            'steps': steps, 
+            'done': done, 
+            'state': convert_numpy_types(maze3.get_full_state()), 
+            'ruta': ruta, 
+            'estados': estados
+        })
+    except Exception as e:
+        print(f"Error en simulación: {e}")
+        return jsonify({
+            'success': False, 
+            'message': f'Error en simulación: {str(e)}'
+        }), 500
 
 @app.route('/continue_training_25x25', methods=['POST'])
 def continue_training_25x25():
@@ -241,7 +293,7 @@ def continue_training_25x25():
 
 @app.route('/reset_maze/<int:maze_id>')
 def reset_maze(maze_id):
-    global maze1, maze2, maze3, agent1, agent2, agent3, modelo_25x25_entrenado
+    global maze1, maze2, maze3, agent1, agent2, agent3, modelo_25x25_entrenado, exitos_25x25
     if maze_id == 1:
         maze1 = Maze(15, 15)
         agent1 = TrainedAgent(15)
@@ -254,8 +306,22 @@ def reset_maze(maze_id):
         maze3 = Maze(25, 25)
         agent3 = QLearningAgent(learning_rate=0.1, discount_factor=0.99, epsilon=1.0)
         modelo_25x25_entrenado = False
+        exitos_25x25 = 0  # Reiniciar contador de éxitos
+        print("Laberinto 25x25 reiniciado - contadores reseteados")
         return jsonify({"message": "Laberinto 3 reiniciado"})
     return jsonify({"error": "Laberinto no encontrado"}), 404
+
+@app.route('/check_model_25x25')
+def check_model_25x25():
+    """Verifica si existe un modelo entrenado para 25x25"""
+    try:
+        with open('trained_agents.pkl', 'rb') as f:
+            models = pickle.load(f)
+            if 'agent_25x25' in models and 'q_table' in models['agent_25x25']:
+                return jsonify({'modelo_existe': True})
+    except (FileNotFoundError, KeyError):
+        pass
+    return jsonify({'modelo_existe': False})
 
 if __name__ == '__main__':
     app.run(debug=True) 

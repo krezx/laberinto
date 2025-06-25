@@ -259,6 +259,60 @@
             border: 2px solid #4CAF50;
             box-shadow: 0 0 0 4px #4CAF50;
         }
+        /* Estilos para botón bloqueado */
+        .btn-blocked {
+            background-color: #cccccc !important;
+            color: #666666 !important;
+            cursor: not-allowed !important;
+            position: relative;
+            opacity: 0.6;
+        }
+        
+        .btn-blocked::after {
+            content: "";
+            position: absolute;
+            right: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 14px;
+        }
+        
+        .btn-blocked:hover {
+            background-color: #cccccc !important;
+            transform: none !important;
+        }
+        
+        /* Tooltip para botón bloqueado */
+        .btn-tooltip {
+            position: relative;
+        }
+        
+        .btn-tooltip:hover::before {
+            content: "Necesitas completar el entrenamiento primero";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #333;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            white-space: nowrap;
+            z-index: 1000;
+            margin-bottom: 5px;
+        }
+        
+        .btn-tooltip:hover::after {
+            content: "";
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            border: 5px solid transparent;
+            border-top-color: #333;
+            margin-bottom: -5px;
+        }
     </style>
 </head>
 <body>
@@ -329,7 +383,7 @@
                 </div>
                 <div class="extra-controls" style="margin-top: 20px; text-align: center;">
                     <button id="btnSkipTrain" onclick="skipTraining25x25()">Entrenamiento Rapido</button>
-                    <button id="btnSimulateTrained" onclick="simulateTrained25x25()" disabled>Simular con modelo entrenado</button>
+                    <button id="btnSimulateTrained" onclick="simulateTrained25x25()" disabled class="btn-blocked btn-tooltip">Simular con modelo entrenado</button>
                     <button id="btnContinueTrain" onclick="continueTraining25x25()">Volver a entrenar</button>
                     <span id="trainStatus" style="margin-left: 15px; color: #333; font-weight: bold;"></span>
                 </div>
@@ -359,6 +413,7 @@
         // Al cargar la página, ocultar todos los laberintos
         window.onload = function() {
             hideAllMazes();
+            checkExistingModel();
         };
 
         function hideAllMazes() {
@@ -371,10 +426,22 @@
             hideAllMazes();
             document.getElementById(`maze${mazeId}`).classList.add('active');
             if (mazeId === 3) {
-                document.getElementById('btnSimulateTrained').disabled = !modelo25Entrenado;
-                setTrainStatus('');
-                // Iniciar entrenamiento en vivo automáticamente al seleccionar el laberinto 25x25
-                startTraining();
+                // Verificar si ya existe un modelo antes de iniciar entrenamiento
+                checkExistingModel().then(() => {
+                    document.getElementById('btnSimulateTrained').disabled = !modelo25Entrenado;
+                    
+                    // Aplicar estilos visuales
+                    const btnSimulate = document.getElementById('btnSimulateTrained');
+                    if (!modelo25Entrenado) {
+                        btnSimulate.classList.add('btn-blocked', 'btn-tooltip');
+                    } else {
+                        btnSimulate.classList.remove('btn-blocked', 'btn-tooltip');
+                    }
+                    
+                    setTrainStatus('');
+                    // Iniciar entrenamiento en vivo automáticamente al seleccionar el laberinto 25x25
+                    startTraining();
+                });
             }
         }
 
@@ -545,7 +612,7 @@
                 .then(response => response.json())
                 .then(data => {
                     currentMaze = data;
-                    renderMaze(data);
+                    // renderMaze(data);  <-- Elimina o comenta esta línea
                     
                     // Si es el laberinto 25x25, mostrar opciones de entrenamiento
                     if (mazeId === 3) {
@@ -565,17 +632,29 @@
                     fetch('/train_25x25')
                         .then(response => response.json())
                         .then(data => {
-                            // Actualizar visualización y stats del laberinto 25x25
                             updateGrid(3, data.state);
                             updateStats(3, data.state, data.reward);
-                            // Actualizar información de entrenamiento en controles extra (opcional)
                             document.getElementById('epsilon').textContent = data.epsilon.toFixed(3);
                             document.getElementById('reward').textContent = data.reward;
-                            if (data.done) {
+
+                            // Mostrar progreso (opcional)
+                            // document.getElementById('exitosCount').textContent = data.exitos;
+
+                            // Si se completó el entrenamiento (primer éxito), detener entrenamiento
+                            if (data.entrenado && !modelo25Entrenado) {
+                                modelo25Entrenado = true;
+                                document.getElementById('btnSimulateTrained').disabled = false;
+                                document.getElementById('btnSimulateTrained').classList.remove('btn-blocked', 'btn-tooltip');
+                                setTrainStatus('¡Entrenamiento completado! El modelo está listo para simular.');
+                                showToast('¡Entrenamiento completado! Ya puedes usar "Simular con modelo entrenado"');
                                 stopTraining();
+                                return;
                             }
+                        })
+                        .catch(error => {
+                            console.error('Error en entrenamiento:', error);
                         });
-                }, 100); // Actualizar cada 100ms
+                }, 100);
             }
         }
 
@@ -585,43 +664,6 @@
                 clearInterval(trainingInterval);
                 document.getElementById('startTraining').disabled = false;
                 document.getElementById('stopTraining').disabled = true;
-            }
-        }
-
-        function renderMaze(data) {
-            const container = document.getElementById('mazeContainer');
-            container.innerHTML = '';
-            
-            const grid = data.grid;
-            const agentPos = data.agent_pos;
-            const goalPos = data.goal_pos;
-            
-            for (let y = 0; y < grid.length; y++) {
-                const row = document.createElement('div');
-                row.className = 'maze-row';
-                
-                for (let x = 0; x < grid[y].length; x++) {
-                    const cell = document.createElement('div');
-                    cell.className = 'maze-cell';
-                    
-                    if (grid[y][x] === 1) {
-                        cell.classList.add('wall');
-                    } else if (grid[y][x] === 2) {
-                        cell.classList.add('obstacle');
-                    }
-                    
-                    if (y === agentPos[0] && x === agentPos[1]) {
-                        cell.classList.add('agent');
-                    }
-                    
-                    if (y === goalPos[0] && x === goalPos[1]) {
-                        cell.classList.add('goal');
-                    }
-                    
-                    row.appendChild(cell);
-                }
-                
-                container.appendChild(row);
             }
         }
 
@@ -641,41 +683,64 @@
         }
 
         async function simulateTrained25x25() {
+            console.log('Iniciando simulación con modelo entrenado...');
             setTrainStatus('Simulando con modelo entrenado...');
             disableTrainButtons(true);
-            const res = await fetch('/simulate_trained_25x25', {method: 'POST'});
-            const data = await res.json();
-            if (data.success) {
-                showMaze(3);
-                createGrid(3, data.state.grid[0].length, data.state.grid.length);
+            
+            try {
+                const res = await fetch('/simulate_trained_25x25', {method: 'POST'});
+                const data = await res.json();
+                console.log('Respuesta de simulación:', data);
+                
+                if (data.success) {
+                    console.log('Simulación exitosa, iniciando animación...');
+                    showMaze(3);
+                    createGrid(3, data.state.grid[0].length, data.state.grid.length);
 
-                // Animar usando los estados completos para mostrar obstáculos dinámicos
-                const estados = data.estados;
-                let paso = 0;
-
-                function animarEstados() {
-                    const estado = estados[paso];
-                    updateGrid(3, estado);
-                    updateStats(3, estado, data.reward);
-
-                    // Resaltar la celda anterior a la meta en el penúltimo paso
-                    if (paso === estados.length - 2) {
-                        const preGoal = estado.agent_pos;
-                        const cell = document.getElementById(`cell-3-${preGoal[0]}-${preGoal[1]}`);
-                        if (cell) cell.classList.add('pre-goal');
-                    }
-
-                    paso++;
-                    if (paso < estados.length) {
-                        setTimeout(animarEstados, 100); // 100ms entre pasos
-                    } else {
-                        setTrainStatus('Simulación óptima completada.');
+                    // Animar usando los estados completos para mostrar obstáculos dinámicos
+                    const estados = data.estados;
+                    console.log('Estados a animar:', estados.length);
+                    
+                    if (estados.length === 0) {
+                        console.error('No hay estados para animar');
+                        setTrainStatus('Error: No hay estados para animar');
                         disableTrainButtons(false);
+                        return;
                     }
+                    
+                    let paso = 0;
+
+                    function animarEstados() {
+                        console.log(`Animando paso ${paso + 1}/${estados.length}`);
+                        const estado = estados[paso];
+                        updateGrid(3, estado);
+                        updateStats(3, estado, data.reward);
+
+                        // Resaltar la celda anterior a la meta en el penúltimo paso
+                        if (paso === estados.length - 2) {
+                            const preGoal = estado.agent_pos;
+                            const cell = document.getElementById(`cell-3-${preGoal[0]}-${preGoal[1]}`);
+                            if (cell) cell.classList.add('pre-goal');
+                        }
+
+                        paso++;
+                        if (paso < estados.length) {
+                            setTimeout(animarEstados, 100); // 100ms entre pasos
+                        } else {
+                            console.log('Animación completada');
+                            setTrainStatus('Simulación óptima completada.');
+                            disableTrainButtons(false);
+                        }
+                    }
+                    animarEstados();
+                } else {
+                    console.error('Error en simulación:', data.message);
+                    setTrainStatus('Error en la simulación: ' + (data.message || 'Error desconocido'));
+                    disableTrainButtons(false);
                 }
-                animarEstados();
-            } else {
-                setTrainStatus('Error en la simulación.');
+            } catch (error) {
+                console.error('Error al ejecutar simulación:', error);
+                setTrainStatus('Error al ejecutar simulación');
                 disableTrainButtons(false);
             }
         }
@@ -697,6 +762,15 @@
         function disableTrainButtons(disabled) {
             document.getElementById('btnSkipTrain').disabled = disabled;
             document.getElementById('btnSimulateTrained').disabled = disabled || !modelo25Entrenado;
+            
+            // Aplicar estilos visuales según el estado
+            const btnSimulate = document.getElementById('btnSimulateTrained');
+            if (disabled || !modelo25Entrenado) {
+                btnSimulate.classList.add('btn-blocked', 'btn-tooltip');
+            } else {
+                btnSimulate.classList.remove('btn-blocked', 'btn-tooltip');
+            }
+            
             document.getElementById('btnContinueTrain').disabled = disabled;
         }
 
@@ -707,6 +781,22 @@
             setTimeout(() => {
                 toast.className = 'toast';
             }, duration);
+        }
+
+        // Función para verificar si ya existe un modelo entrenado al cargar la página
+        async function checkExistingModel() {
+            try {
+                const response = await fetch('/check_model_25x25');
+                const data = await response.json();
+                if (data.modelo_existe) {
+                    modelo25Entrenado = true;
+                    document.getElementById('btnSimulateTrained').disabled = false;
+                    document.getElementById('btnSimulateTrained').classList.remove('btn-blocked', 'btn-tooltip');
+                    setTrainStatus('Modelo entrenado disponible. Puedes usar "Simular con modelo entrenado".');
+                }
+            } catch (error) {
+                console.log('No hay modelo existente o error al verificar:', error);
+            }
         }
 
         // Cargar el primer laberinto al iniciar
