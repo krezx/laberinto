@@ -130,6 +130,23 @@ def move(maze_id):
 def train_25x25():
     """Entrena el agente 25x25 en vivo (un solo paso por llamada, visualización lenta) y guarda el modelo solo si mejora la ruta a la meta. Al primer éxito, detiene el entrenamiento y reinicia el agente al inicio."""
     global maze3, agent3, exitos_25x25, mejor_pasos_25x25, modelo_25x25_entrenado
+
+    # --- BLOQUEO: Si ya está entrenado, no sigas entrenando ---
+    if modelo_25x25_entrenado:
+        return jsonify(convert_numpy_types({
+            "state": maze3.get_full_state(),
+            "reward": 0,
+            "done": False,
+            "action": None,
+            "epsilon": agent3.epsilon,
+            "exitos": exitos_25x25,
+            "entrenado": True,
+            "mejor_pasos": mejor_pasos_25x25,
+            "modelo_guardado": False,
+            "entrenamiento_finalizado": True
+        }))
+
+    # --- El resto de tu código igual ---
     state = maze3.get_state()
     action = agent3.get_action(state)
     reward, done = maze3.move(action)

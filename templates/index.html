@@ -641,13 +641,14 @@
                             // document.getElementById('exitosCount').textContent = data.exitos;
 
                             // Si se completó el entrenamiento (primer éxito), detener entrenamiento
-                            if (data.entrenado && !modelo25Entrenado) {
+                            if (data.entrenado) {
+                                // Siempre detener el entrenamiento si el backend dice que ya está entrenado
                                 modelo25Entrenado = true;
                                 stopTraining();
                                 document.getElementById('btnSimulateTrained').disabled = false;
                                 document.getElementById('btnSimulateTrained').classList.remove('btn-blocked', 'btn-tooltip');
                                 setTrainStatus('¡Entrenamiento completado! El modelo está listo para simular.');
-                                showToast('¡Entrenamiento completado! Ya puedes usar "Simular con modelo entrenado"');
+                                showToast('¡Primer éxito completado! Ya puedes usar "Simular con modelo entrenado"');
                                 resetMaze25Visual();
                                 return;
                             }
