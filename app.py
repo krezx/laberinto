@@ -143,7 +143,9 @@ def train_25x25():
     agent3.decay_epsilon()
     modelo_guardado = False
     entrenamiento_finalizado = False
-    if reward == 100:
+    
+    # Solo contar éxitos si el entrenamiento visual está en progreso (no si ya está entrenado por entrenamiento sin visualización)
+    if reward == 100 and not modelo_25x25_entrenado:
         exitos_25x25 += 1
         print(f"¡Éxito #{exitos_25x25} alcanzado!")
         pasos_actuales = maze3.moves_count
@@ -156,9 +158,19 @@ def train_25x25():
             modelo_25x25_entrenado = True
             entrenamiento_finalizado = True
             print("Entrenamiento finalizado tras 5 éxitos (puedes seguir entrenando).")
-    entrenado = exitos_25x25 >= 5
-    if entrenado:
+    elif reward == 100 and modelo_25x25_entrenado:
+        # Si ya está entrenado, solo guardar el modelo pero no contar éxitos
+        from qlearning_trainer import save_model_25x25
+        save_model_25x25(agent3, mejor_pasos_25x25)
+        modelo_guardado = True
+        print("Modelo actualizado (ya entrenado)")
+    
+    entrenado = exitos_25x25 >= 5 or modelo_25x25_entrenado
+    if entrenado and exitos_25x25 >= 5:
         print(f"🎉 ¡ENTRENAMIENTO COMPLETADO! {exitos_25x25} éxitos alcanzados (puedes seguir entrenando)")
+    elif modelo_25x25_entrenado:
+        print("Modelo ya entrenado (sin visualización)")
+    
     return jsonify(convert_numpy_types({
         "state": maze3.get_full_state(),
         "reward": reward,
@@ -175,21 +187,31 @@ def train_25x25():
 @app.route('/skip_training_25x25', methods=['POST'])
 def skip_training_25x25():
     """Entrena rápidamente el modelo 25x25 sin mostrar paso a paso y devuelve la simulación animada"""
-    global maze3, agent3, modelo_25x25_entrenado, mejor_pasos_25x25
+    global maze3, agent3, modelo_25x25_entrenado, mejor_pasos_25x25, exitos_25x25
     from qlearning_trainer import train_agent_25x25, save_model_25x25
+    
+    print("Iniciando entrenamiento sin visualización...")
     agent, _, _, _ = train_agent_25x25(episodes=15000)
     agent3 = agent
     maze3 = Maze(25, 25)
+    
+    # Marcar como entrenado inmediatamente (entrenamiento completo)
     modelo_25x25_entrenado = True
-    # Guardar solo el modelo entrenado actual de 25x25 (al final del entrenamiento)
+    # No contar éxitos individuales para entrenamiento sin visualización
+    # exitos_25x25 se mantiene como estaba
+    
+    # Guardar el modelo entrenado
     save_model_25x25(agent3, mejor_pasos_25x25)
-    # Simular el recorrido con el nuevo modelo entrenado (sin guardar durante la simulación)
+    print("Entrenamiento sin visualización completado. Modelo guardado.")
+    
+    # Simular el recorrido con el nuevo modelo entrenado
     state = maze3.get_state()
     done = False
     total_reward = 0
     steps = 0
     ruta = [list(maze3.agent_pos)]
     estados = [convert_numpy_types(maze3.get_full_state())]
+    
     while not done and steps < maze3.max_moves:
         action = agent.get_action(state)
         reward, done = maze3.move(action)
@@ -201,7 +223,19 @@ def skip_training_25x25():
         estados.append(convert_numpy_types(maze3.get_full_state()))
         total_reward += reward
         steps += 1
-    return jsonify({'success': True, 'message': 'Entrenamiento sin visualización completado.', 'reward': total_reward, 'steps': steps, 'done': done, 'state': convert_numpy_types(maze3.get_full_state()), 'ruta': ruta, 'estados': estados})
+    
+    return jsonify({
+        'success': True, 
+        'message': 'Entrenamiento sin visualización completado.', 
+        'reward': total_reward, 
+        'steps': steps, 
+        'done': done, 
+        'state': convert_numpy_types(maze3.get_full_state()), 
+        'ruta': ruta, 
+        'estados': estados,
+        'entrenado': True,  # Siempre true para entrenamiento sin visualización
+        'exitos': exitos_25x25  # Mantener el valor actual
+    })
 
 @app.route('/simulate_trained_25x25', methods=['POST'])
 def simulate_trained_25x25():

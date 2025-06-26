@@ -439,13 +439,8 @@
                     }
                     
                     setTrainStatus('');
-                    
-                    // Solo iniciar entrenamiento visual automáticamente si NO hay modelo entrenado
-                    if (!modelo25Entrenado) {
-                        startTraining();
-                    } else {
-                        setTrainStatus('Modelo entrenado disponible. Puedes usar "Simular con modelo entrenado" o seguir entrenando.');
-                    }
+                    // Iniciar entrenamiento en vivo automáticamente al seleccionar el laberinto 25x25
+                    startTraining();
                 });
             }
         }
@@ -646,15 +641,22 @@
                             if (data.done) {
                                 stopTraining(); // Detener el bucle de entrenamiento
                                 if (data.reward > 0) { // Si fue un éxito
-                                    setTrainStatus(`Éxitos: ${data.exitos} (puedes seguir entrenando para mejorar el modelo).`);
-                                    showToast(`¡Éxito #${data.exitos} alcanzado!`);
-                                    // Si se completó el entrenamiento (5 éxitos), habilitar simulación
-                                    if (data.entrenado) {
-                                        modelo25Entrenado = true;
-                                        document.getElementById('btnSimulateTrained').disabled = false;
-                                        document.getElementById('btnSimulateTrained').classList.remove('btn-blocked', 'btn-tooltip');
-                                        setTrainStatus('¡Entrenamiento completado! Puedes seguir entrenando indefinidamente para mejorar el modelo.');
-                                        showToast('¡Has alcanzado 5 éxitos! Ya puedes usar "Simular con modelo entrenado"');
+                                    // Solo mostrar mensajes de éxitos si no está entrenado por entrenamiento sin visualización
+                                    if (!modelo25Entrenado) {
+                                        setTrainStatus(`Éxitos: ${data.exitos} (puedes seguir entrenando para mejorar el modelo).`);
+                                        showToast(`¡Éxito #${data.exitos} alcanzado!`);
+                                        // Si se completó el entrenamiento (5 éxitos), habilitar simulación
+                                        if (data.entrenado) {
+                                            modelo25Entrenado = true;
+                                            document.getElementById('btnSimulateTrained').disabled = false;
+                                            document.getElementById('btnSimulateTrained').classList.remove('btn-blocked', 'btn-tooltip');
+                                            setTrainStatus('¡Entrenamiento completado! Puedes seguir entrenando indefinidamente para mejorar el modelo.');
+                                            showToast('¡Has alcanzado 5 éxitos! Ya puedes usar "Simular con modelo entrenado"');
+                                        }
+                                    } else {
+                                        // Si ya está entrenado, solo mostrar mensaje de éxito
+                                        setTrainStatus('Éxito alcanzado. Modelo ya entrenado.');
+                                        showToast('¡Éxito alcanzado!');
                                     }
                                 } else {
                                     setTrainStatus('Episodio fallido (límite de mov.). Presiona "Volver a entrenar".');
@@ -679,19 +681,29 @@
         }
 
         async function skipTraining25x25() {
-            setTrainStatus('Entrenando...');
+            setTrainStatus('Entrenando sin visualización...');
             disableTrainButtons(true);
-            const res = await fetch('/skip_training_25x25', {method: 'POST'});
-            const data = await res.json();
-            if (data.success) {
-                modelo25Entrenado = true;
-                setTrainStatus('Entrenamiento sin visualización completado. Puedes usar "Simular con modelo entrenado".');
-                document.getElementById('btnSimulateTrained').disabled = false;
-                document.getElementById('btnSimulateTrained').classList.remove('btn-blocked', 'btn-tooltip');
-                // NO iniciar entrenamiento visual automáticamente después del entrenamiento sin visualización
-            } else {
-                setTrainStatus('Error en el entrenamiento.');
+            
+            try {
+                const res = await fetch('/skip_training_25x25', {method: 'POST'});
+                const data = await res.json();
+                
+                if (data.success) {
+                    modelo25Entrenado = true;
+                    setTrainStatus('Entrenamiento sin visualización completado. Modelo listo para simular.');
+                    document.getElementById('btnSimulateTrained').disabled = false;
+                    document.getElementById('btnSimulateTrained').classList.remove('btn-blocked', 'btn-tooltip');
+                    showToast('Entrenamiento completado. Puedes usar "Simular con modelo entrenado".');
+                } else {
+                    setTrainStatus('Error en el entrenamiento sin visualización.');
+                    showToast('Error en el entrenamiento');
+                }
+            } catch (error) {
+                console.error('Error en entrenamiento sin visualización:', error);
+                setTrainStatus('Error en el entrenamiento sin visualización.');
+                showToast('Error en el entrenamiento');
             }
+            
             disableTrainButtons(false);
         }
 
