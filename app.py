@@ -361,6 +361,43 @@ def reset_maze(maze_id):
         return jsonify({"message": "Episodio del laberinto 3 reiniciado"})
     return jsonify({"error": "Laberinto no encontrado"}), 404
 
+@app.route('/reset_maze_25x25_complete', methods=['POST'])
+def reset_maze_25x25_complete():
+    """Reinicia completamente el laberinto 25x25, borrando el modelo entrenado y reiniciando todas las variables"""
+    global maze3, agent3, modelo_25x25_entrenado, exitos_25x25, mejor_pasos_25x25
+    
+    try:
+        # Borrar el modelo 25x25 del archivo
+        if os.path.exists('trained_agents.pkl'):
+            with open('trained_agents.pkl', 'rb') as f:
+                models = pickle.load(f)
+            if 'agent_25x25' in models:
+                del models['agent_25x25']
+                with open('trained_agents.pkl', 'wb') as f:
+                    pickle.dump(models, f)
+                print("Modelo 25x25 eliminado del archivo.")
+        
+        # Reiniciar variables globales
+        modelo_25x25_entrenado = False
+        exitos_25x25 = 0
+        mejor_pasos_25x25 = None
+        
+        # Crear nuevo laberinto y agente
+        maze3 = Maze(25, 25)
+        agent3 = QLearningAgent(learning_rate=0.1, discount_factor=0.99, epsilon=1.0)
+        
+        print("Laberinto 25x25 completamente reiniciado (modelo borrado).")
+        return jsonify({
+            "success": True,
+            "message": "Laberinto 25x25 completamente reiniciado. Modelo borrado."
+        })
+    except Exception as e:
+        print(f"Error al reiniciar completamente el laberinto 25x25: {e}")
+        return jsonify({
+            "success": False,
+            "message": f"Error al reiniciar: {str(e)}"
+        }), 500
+
 @app.route('/check_model_25x25')
 def check_model_25x25():
     """Verifica si existe un modelo entrenado para 25x25"""

@@ -589,22 +589,38 @@
                 }
                 
                 try {
-                    // Llamar al endpoint de reinicio del servidor
-                    const response = await fetch(`/reset_maze/${currentMaze}`);
-                    if (!response.ok) {
-                        throw new Error('Error al reiniciar el laberinto');
+                    let response;
+                    
+                    // Si es el laberinto 25x25, usar el reinicio completo que borra el modelo
+                    if (currentMaze === 3) {
+                        response = await fetch('/reset_maze_25x25_complete', {method: 'POST'});
+                        if (!response.ok) {
+                            throw new Error('Error al reiniciar completamente el laberinto 25x25');
+                        }
+                        
+                        // Reiniciar variables del frontend
+                        modelo25Entrenado = false;
+                        document.getElementById('btnSimulateTrained').disabled = true;
+                        document.getElementById('btnSimulateTrained').classList.add('btn-blocked', 'btn-tooltip');
+                        document.getElementById('btnContinueTrain').disabled = false;
+                        document.getElementById('btnContinueTrain').style.backgroundColor = '#4CAF50';
+                        document.getElementById('btnContinueTrain').style.color = 'white';
+                        document.getElementById('btnContinueTrain').style.cursor = 'pointer';
+                        setTrainStatus('');
+                        
+                        showToast('Laberinto 25x25 completamente reiniciado. Modelo borrado.');
+                    } else {
+                        // Para otros laberintos, usar el reinicio normal
+                        response = await fetch(`/reset_maze/${currentMaze}`);
+                        if (!response.ok) {
+                            throw new Error('Error al reiniciar el laberinto');
+                        }
                     }
                     
                     // Reiniciar las estadísticas
                     document.getElementById(`moves${currentMaze}`).textContent = '0';
                     document.getElementById(`reward${currentMaze}`).textContent = '0';
                     document.getElementById(`progress${currentMaze}`).style.width = '0%';
-                    
-                    if (currentMaze === 3) {
-                        modelo25Entrenado = false;
-                        document.getElementById('btnSimulateTrained').disabled = true;
-                        setTrainStatus('');
-                    }
                     
                     // Reiniciar la simulación
                     startSimulation(currentMaze);
