@@ -693,6 +693,11 @@
                     setTrainStatus('Entrenamiento sin visualización completado. Modelo listo para simular.');
                     document.getElementById('btnSimulateTrained').disabled = false;
                     document.getElementById('btnSimulateTrained').classList.remove('btn-blocked', 'btn-tooltip');
+                    // Deshabilitar el botón "Volver a entrenar" ya que no tiene sentido después de 15,000 episodios
+                    document.getElementById('btnContinueTrain').disabled = true;
+                    document.getElementById('btnContinueTrain').style.backgroundColor = '#cccccc';
+                    document.getElementById('btnContinueTrain').style.color = '#666666';
+                    document.getElementById('btnContinueTrain').style.cursor = 'not-allowed';
                     showToast('Entrenamiento completado. Puedes usar "Simular con modelo entrenado".');
                 } else {
                     setTrainStatus('Error en el entrenamiento sin visualización.');
