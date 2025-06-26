@@ -203,7 +203,9 @@ def skip_training_25x25():
     # Guardar el modelo entrenado
     save_model_25x25(agent3, mejor_pasos_25x25)
     print("Entrenamiento sin visualización completado. Modelo guardado.")
-    
+    # Recargar el agente desde archivo para mantener sincronización
+    from trained_agent import TrainedAgent
+    agent3 = TrainedAgent(25)
     # Simular el recorrido con el nuevo modelo entrenado
     state = maze3.get_state()
     done = False
@@ -327,6 +329,9 @@ def continue_training_25x25():
         save_model_25x25(agent3, mejor_pasos_25x25)
         modelo_guardado = True
         print(f"Modelo guardado tras éxito #{exitos_25x25} (Volver a entrenar)")
+        # Recargar el agente desde archivo para mantener sincronización
+        from trained_agent import TrainedAgent
+        agent3 = TrainedAgent(25)
         if exitos_25x25 >= 5:
             modelo_25x25_entrenado = True
             entrenamiento_finalizado = True
