@@ -1,0 +1,152 @@
+============================================================
+REPORTE COMPLETO DE ENTRENAMIENTO Q-LEARNING
+============================================================
+Fecha de generación: 2025-06-26 01:15:30
+
+
+==================== LABERINTO 15x15 ====================
+
+--- CONFIGURACIÓN DEL AGENTE ---
+Learning Rate: 0.1
+Discount Factor: 0.95
+Epsilon inicial: 1.0
+Epsilon final: 0.0100
+Epsilon mínimo: 0.01
+Epsilon decay: 0.995
+Estados en Q-table: 54
+
+--- ESTADÍSTICAS DE ENTRENAMIENTO ---
+Episodios totales: 5000
+
+Recompensas:
+  - Promedio final: 136.09
+  - Máxima: 136.50
+  - Mínima: -642.50
+  - Desviación estándar: 100.07
+
+Pasos:
+  - Promedio final: 28.28
+  - Mínimo: 28
+  - Máximo: 90
+  - Desviación estándar: 10.06
+
+Tasa de éxito:
+  - Final: 100.0%
+  - Máxima: 100.0%
+  - Promedio: 96.7%
+
+Análisis de convergencia:
+  - Tasa en últimos 100 episodios: 100.0%
+  - Estado: ✅ CONVERGIDO EXITOSAMENTE
+
+Exploración:
+  - Inicial: 99.5%
+  - Final: 1.0%
+  - Reducción: 98.5%
+
+==================== LABERINTO 20x20 ====================
+
+--- CONFIGURACIÓN DEL AGENTE ---
+Learning Rate: 0.1
+Discount Factor: 0.95
+Epsilon inicial: 1.0
+Epsilon final: 0.0100
+Epsilon mínimo: 0.01
+Epsilon decay: 0.995
+Estados en Q-table: 115
+
+--- ESTADÍSTICAS DE ENTRENAMIENTO ---
+Episodios totales: 7000
+
+Recompensas:
+  - Promedio final: 151.00
+  - Máxima: 151.50
+  - Mínima: -836.00
+  - Desviación estándar: 124.37
+
+Pasos:
+  - Promedio final: 38.38
+  - Mínimo: 38
+  - Máximo: 120
+  - Desviación estándar: 13.12
+
+Tasa de éxito:
+  - Final: 100.0%
+  - Máxima: 100.0%
+  - Promedio: 96.8%
+
+Análisis de convergencia:
+  - Tasa en últimos 100 episodios: 100.0%
+  - Estado: ✅ CONVERGIDO EXITOSAMENTE
+
+Exploración:
+  - Inicial: 99.5%
+  - Final: 1.0%
+  - Reducción: 98.5%
+
+==================== LABERINTO 25x25 ====================
+
+--- CONFIGURACIÓN DEL AGENTE ---
+Learning Rate: 0.2
+Discount Factor: 0.95
+Epsilon inicial: 1.0
+Epsilon final: 0.8470
+Epsilon mínimo: 0.001
+Epsilon decay: 0.999
+Estados en Q-table: 200
+
+--- ESTADÍSTICAS DE ENTRENAMIENTO ---
+Episodios totales: 166
+
+Recompensas:
+  - Promedio final: -2013.48
+  - Máxima: 545.00
+  - Mínima: -6451.50
+  - Desviación estándar: 2274.18
+
+Pasos:
+  - Promedio final: 536.99
+  - Mínimo: 143
+  - Máximo: 1000
+  - Desviación estándar: 284.22
+
+Tasa de éxito:
+  - Final: 90.0%
+  - Máxima: 90.0%
+  - Promedio: 33.3%
+
+Análisis de convergencia:
+  - Tasa en últimos 100 episodios: 50.8%
+  - Estado: ⚠️ PROGRESO DETECTADO
+
+Exploración:
+  - Inicial: 99.9%
+  - Final: 84.7%
+  - Reducción: 15.2%
+
+==================== COMPARACIÓN ENTRE LABERINTOS ====================
+
+Tasas de éxito finales:
+  - 15x15: 100.0%
+  - 20x20: 100.0%
+  - 25x25: 90.0%
+
+Recompensas promedio finales:
+  - 15x15: 136.09
+  - 20x20: 151.00
+  - 25x25: -2013.48
+
+Pasos promedio finales:
+  - 15x15: 28.28
+  - 20x20: 38.38
+  - 25x25: 536.99
+
+==================== RECOMENDACIONES ====================
+Mejor rendimiento: Laberinto 15x15 (100.0% de éxito)
+- El laberinto 15x15 está excelentemente entrenado (actual: 100.0%)
+- El laberinto 20x20 está excelentemente entrenado (actual: 100.0%)
+- El laberinto 25x25 está excelentemente entrenado (actual: 90.0%)
+
+============================================================
+FIN DEL REPORTE
+============================================================
