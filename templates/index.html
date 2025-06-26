@@ -434,13 +434,21 @@
                     const btnSimulate = document.getElementById('btnSimulateTrained');
                     if (!modelo25Entrenado) {
                         btnSimulate.classList.add('btn-blocked', 'btn-tooltip');
+                        // Solo iniciar entrenamiento automático si NO hay modelo entrenado
+                        setTrainStatus('');
+                        startTraining();
                     } else {
                         btnSimulate.classList.remove('btn-blocked', 'btn-tooltip');
+                        // Si ya hay modelo entrenado, solo mostrar el estado inicial sin entrenar
+                        setTrainStatus('Modelo entrenado disponible. Puedes usar "Simular con modelo entrenado".');
+                        fetch('/get_maze/3')
+                            .then(response => response.json())
+                            .then(state => {
+                                createGrid(3, state.grid[0].length, state.grid.length);
+                                updateGrid(3, state);
+                                updateStats(3, state, 0);
+                            });
                     }
-                    
-                    setTrainStatus('');
-                    // Iniciar entrenamiento en vivo automáticamente al seleccionar el laberinto 25x25
-                    startTraining();
                 });
             }
         }
@@ -681,6 +689,11 @@
         }
 
         async function skipTraining25x25() {
+            // Detener el entrenamiento en vivo si está ejecutándose
+            if (isTraining) {
+                stopTraining();
+            }
+            
             setTrainStatus('Entrenando sin visualización...');
             disableTrainButtons(true);
             
